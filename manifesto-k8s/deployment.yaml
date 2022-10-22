@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: postgres
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec: 
+      containers:
+       - name: postgre
+         image: postgres:15.0
+         ports:
+         - containerPort: 5432
+         env: 
+          - name: POSTGRES_PASSWORD
+            value: "Pg#123"
+          - name: POSTGRES_USER
+            value: "kubedevnews"
+          - name: POSTGRES_DB
+            value: "kubedevnews" 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgre-svc
+spec: 
+  selector:
+    app: postgres
+  ports: 
+    - port: 5432
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: site
+spec:
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec: 
+      containers:
+       - name: site
+         image: carloscancian/kubenews:latest
+         ports:
+         - containerPort: 8080
+         env: 
+          - name: DB_DATABASE
+            value: "kubedevnews"
+          - name: DB_USERNAME
+            value: "kubedevnews"
+          - name: DB_PASSWORD
+            value: "Pg#123" 
+          - name: DB_HOST
+            value: "postgre-svc"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: site-svc
+spec: 
+  selector:
+    app: web
+  ports: 
+    - port: 80
+      protocol: TCP
+      targetPort: 8080
+      # nodePort: 30000
+  type: LoadBalancer
